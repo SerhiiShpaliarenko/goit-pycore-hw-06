@@ -1,0 +1,179 @@
+from collections import UserDict
+
+# Це базовий клас, як нам дали в завданні
+class Field:
+    def __init__(self, value):
+        self.value = value
+
+    def __str__(self):
+        return str(self.value)
+
+# Клас для імені
+class Name(Field):
+    # Тут нічого не треба додавати, бо ім'я - це просто текст
+    pass
+
+# Клас для телефону
+class Phone(Field):
+    # Тут ми додаємо перевірку (валідацію)
+    def __init__(self, value):
+        # Перевіряємо, чи номер має 10 цифр
+        if len(value) == 10 and value.isdigit():
+            # Якщо все добре, зберігаємо номер
+            self.value = value
+        else:
+            # Якщо номер неправильний, ми "ламаємо" програму 
+            # і кажемо, в чому проблема
+            raise ValueError("Телефон має бути з 10 цифр!")
+
+# Клас для одного контакту (одної людини)
+class Record:
+    def __init__(self, name):
+        # Кожен контакт має ім'я
+        self.name = Name(name)
+        # і список телефонів (спочатку порожній)
+        self.phones = []
+
+    # Функція, щоб додати телефон
+    def add_phone(self, phone_number):
+        # Створюємо новий об'єкт Телефону
+        # Якщо номер буде неправильний, то тут виникне помилка
+        new_phone = Phone(phone_number)
+        # Додаємо його до списку
+        self.phones.append(new_phone)
+
+    # Функція, щоб видалити телефон
+    def remove_phone(self, phone_number):
+        # Шукаємо телефон, який хочемо видалити
+        for phone in self.phones:
+            if phone.value == phone_number:
+                # Якщо знайшли, видаляємо його зі списку
+                self.phones.remove(phone)
+                return
+        
+        # Якщо не знайшли, кажемо про це
+        print(f"Телефон {phone_number} не знайдено.")
+
+    # Функція, щоб змінити один телефон на інший
+    def edit_phone(self, old_phone, new_phone):
+        # Шукаємо старий телефон
+        for phone in self.phones:
+            if phone.value == old_phone:
+                # Якщо знайшли, створюємо новий об'єкт Телефону
+                # знову ж, з перевіркою
+                try:
+                    new_phone_obj = Phone(new_phone)
+                    # міняємо значення старого телефону на нове
+                    # (новачок може зробити це просто,
+                    # хоча правильніше було б замінити об'єкт)
+                    phone.value = new_phone_obj.value
+                    print(f"Замінено {old_phone} на {new_phone}")
+                    return
+                except ValueError as e:
+                    print(f"Помилка: {e}") # Виводимо помилку валідації
+                    return
+
+        # Якщо не знайшли старий телефон
+        print(f"Старий телефон {old_phone} не знайдено.")
+
+    # Функція, щоб знайти телефон
+    def find_phone(self, phone_number):
+        # Шукаємо телефон
+        for phone in self.phones:
+            if phone.value == phone_number:
+                # Повертаємо сам об'єкт телефону
+                return phone
+        # Якщо не знайшли, повертаємо "нічого"
+        return None
+
+    # Це "магічний" метод, щоб гарно друкувати контакт
+    def __str__(self):
+        # Збираємо всі телефони в один рядок через кому
+        phones_str = ""
+        for p in self.phones:
+            phones_str += f"{p.value}, "
+        
+        # Прибираємо останню зайву кому і пробіл
+        if phones_str:
+            phones_str = phones_str[:-2]
+
+        return f"Контакт: {self.name.value}, телефони: {phones_str}"
+
+# Це наша головна адресна книга
+class AddressBook(UserDict):
+    
+    # Функція, щоб додати новий запис (контакт)
+    def add_record(self, record):
+        # 'data' - це словник, який є всередині UserDict
+        # ми кажемо: "ключ - це ім'я, а значення - це сам запис"
+        self.data[record.name.value] = record
+
+    # Функція, щоб знайти запис за ім'ям
+    def find(self, name):
+        # Шукаємо в нашому словнику 'data' за ключем (іменем)
+        if name in self.data:
+            return self.data[name]
+        else:
+            return None # Повертаємо "нічого", якщо не знайшли
+
+    # Функція, щоб видалити запис за ім'ям
+    def delete(self, name):
+        # Перевіряємо, чи є такий запис
+        if name in self.data:
+            # Видаляємо зі словника
+            del self.data[name]
+        else:
+            print(f"Контакт {name} не знайдено.")
+
+# --- Приклад, як це все працює ---
+
+# Створюємо нову книгу
+book = AddressBook()
+
+# Створюємо контакт "Іван"
+ivan_record = Record("Іван")
+ivan_record.add_phone("0971234567")
+ivan_record.add_phone("0509876543")
+
+# Додаємо Івана до книги
+book.add_record(ivan_record)
+
+# Створюємо і додаємо "Оксана"
+oksana_record = Record("Оксана")
+oksana_record.add_phone("0631112233")
+book.add_record(oksana_record)
+
+# Дивимось, що у нас в книзі
+print("--- Всі контакти ---")
+for name, record in book.data.items():
+    print(record)
+
+# Знаходимо Івана і міняємо йому телефон
+print("\n--- Редагуємо Івана ---")
+ivan = book.find("Іван")
+ivan.edit_phone("0971234567", "0957654321")
+
+# Дивимось, що вийшло
+print(ivan)
+
+# Шукаємо конкретний телефон в Івана
+print("\n--- Шукаємо телефон Івана ---")
+found = ivan.find_phone("0509876543")
+if found:
+    print(f"Знайдено номер: {found.value}")
+
+# Видаляємо Оксану
+print("\n--- Видаляємо Оксану ---")
+book.delete("Оксана")
+
+# Дивимось, що залишилось в книзі
+print("\n--- Всі контакти (після видалення) ---")
+for name, record in book.data.items():
+    print(record)
+
+# Спробуємо додати неправильний номер
+print("\n--- Тест помилки ---")
+try:
+    ivan.add_phone("123")
+except ValueError as e:
+    print(f"Спіймали помилку: {e}")
